@@ -6,53 +6,52 @@ import random
 import json
 import logging
 import math
-from math import sqrt
-import csv
+import requests
 
 option_a = os.getenv('OPTION_A', "Manhattan")
 option_b = os.getenv('OPTION_B', "Pearson")
 hostname = socket.gethostname()
 
+# FUNCIONES
 
-#FUNCIONES
-
-#1
+# 1
 def manhattan(rating1, rating2):
-  distance = 0
-  total = 0
-  for key in rating1:
-      if key in rating2:
-          distance += abs(rating1[key] - rating2[key])
-          total += 1
-  if total > 0:
-      return distance / total
-  else:
-      return -1  # Indica que no hay calificaciones en común
+    distance = 0
+    total = 0
+    for key in rating1:
+        if key in rating2:
+            distance += abs(rating1[key] - rating2[key])
+            total += 1
+    if total > 0:
+        return distance / total
+    else:
+        return -1  # Indica que no hay calificaciones en común
 
 
-#2
+# 2
 def pearson(rating1, rating2):
-  n = len(rating1)
-  if n == 0:
-      return 0
+    n = len(rating1)
+    if n == 0:
+        return 0
 
-  sum_x = sum(rating1.values())
-  sum_y = sum(rating2.values())
-  sum_xy = sum(rating1[movie] * rating2[movie] for movie in rating1 if movie in rating2)
-  sum_x2 = sum(pow(rating1[movie], 2) for movie in rating1)
-  sum_y2 = sum(pow(rating2[movie], 2) for movie in rating2)
+    sum_x = sum(rating1.values())
+    sum_y = sum(rating2.values())
+    sum_xy = sum(rating1[movie] * rating2[movie] for movie in rating1 if movie in rating2)
+    sum_x2 = sum(pow(rating1[movie], 2) for movie in rating1)
+    sum_y2 = sum(pow(rating2[movie], 2) for movie in rating2)
 
-  numerator = sum_xy - (sum_x * sum_y) / n
+    numerator = sum_xy - (sum_x * sum_y) / n
 
-  denominator = sqrt(abs((sum_x2 - pow(sum_x, 2) / n) * (sum_y2 - pow(sum_y, 2) / n) + 1e-9))
+    denominator = sqrt(abs((sum_x2 - pow(sum_x, 2) / n) * (sum_y2 - pow(sum_y, 2) / n) + 1e-9))
 
-  if denominator == 0:
-      return 0
+    if denominator == 0:
+        return 0
 
-  similarity = numerator / denominator
-  return similarity
+    similarity = numerator / denominator
+    return similarity
 
-#3
+
+# 3
 def euclidean(rating1, rating2):
     distance = 0
     common_ratings = False
@@ -66,27 +65,25 @@ def euclidean(rating1, rating2):
         return -1  # Indica que no hay calificaciones en común
 
 
-#4
+# 4
 def cosine_similarity(rating1, rating2):
-  dot_product = 0
-  magnitude_rating1 = 0
-  magnitude_rating2 = 0
+    dot_product = 0
+    magnitude_rating1 = 0
+    magnitude_rating2 = 0
 
-  for key in rating1:
-      if key in rating2:
-          dot_product += rating1[key] * rating2[key]
-          magnitude_rating1 += pow(rating1[key], 2)
-          magnitude_rating2 += pow(rating2[key], 2)
+    for key in rating1:
+        if key in rating2:
+            dot_product += rating1[key] * rating2[key]
+            magnitude_rating1 += pow(rating1[key], 2)
+            magnitude_rating2 += pow(rating2[key], 2)
 
-  magnitude_rating1 = math.sqrt(magnitude_rating1)
-  magnitude_rating2 = math.sqrt(magnitude_rating2)
+    magnitude_rating1 = math.sqrt(magnitude_rating1)
+    magnitude_rating2 = math.sqrt(magnitude_rating2)
 
-  if magnitude_rating1 == 0 or magnitude_rating2 == 0:
-      return 0
-  else:
-      return dot_product / (magnitude_rating1 * magnitude_rating2)
-      
-      
+    if magnitude_rating1 == 0 or magnitude_rating2 == 0:
+        return 0
+    else:
+        return dot_product / (magnitude_rating1 * magnitude_rating2)
 
 app = Flask(__name__)
 
@@ -99,19 +96,23 @@ def get_redis():
         g.redis = Redis(host="redis", db=0, socket_timeout=5)
     return g.redis
 
-def cargar_datos_desde_dat(ruta_dat):
-    datos = {}
-    with open(ruta_dat, 'r', encoding='utf-8') as archivo_dat:
-        for linea in archivo_dat:
-            userId, movieId, rating, timestamp = linea.strip().split('::')
-            rating = float(rating)
+def cargar_datos_desde_api(api_url):
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        datos = {}
+        for rating_data in response.json():
+            userId = str(rating_data["userId"])
+            movieId = str(rating_data["movieId"])
+            rating = float(rating_data["rating"])
             if userId not in datos:
                 datos[userId] = {}
             datos[userId][movieId] = rating
-    return datos
+        return datos
+    else:
+        raise Exception("Error al obtener datos desde la API")
 
-ruta_dat = 'ml-10M100K/ratings.dat'  # Cambia esto a la ubicación real de tu archivo DAT
-usuarios = cargar_datos_desde_dat(ruta_dat)
+api_url = 'http://ip172-18-0-43-clf9v9efml8g00e3gglg-5000.direct.labs.play-with-docker.com/ratings'
+usuarios = cargar_datos_desde_api(api_url)
 
 @app.route("/", methods=['POST', 'GET'])
 def distancias():
@@ -123,7 +124,7 @@ def distancias():
         redis = get_redis()
         user_1 = request.form['option_a']
         user_2 = request.form['option_b']
-        operation = request.form['operation']  # Obtener la operación seleccionada
+        operation = request.form['operation']
 
         if user_1 in usuarios and user_2 in usuarios:
             if operation == 'manhattan':
@@ -137,10 +138,10 @@ def distancias():
             else:
                 return "Operación no válida"
 
-            data = json.dumps({'voter_id': voter_id, 'distancia': distancia})  # Enviar solo la distancia calculada
+            data = json.dumps({'voter_id': voter_id, 'distancia': distancia})
             redis.rpush('distancias', data)
         else:
-            return "Usuarios no encontrados en los datos cargados desde el CSV"
+            return "Usuarios no encontrados en los datos cargados desde la API"
 
     resp = make_response(render_template(
         'index.html',

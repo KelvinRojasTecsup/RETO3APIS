@@ -1,61 +1,56 @@
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
+  font-family: 'Arial', sans-serif;
   margin: 0;
   padding: 0;
+  background-color: #e6e6e6; /* Changed background color */
 }
 
 #content-container {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   height: 100vh;
 }
 
 #content-container-center {
-  background-color: #fff;
+  background-color: #ffffff; /* Changed background color */
   padding: 20px;
-  border-radius: 5px;
+  border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 h3 {
-  text-align: center;
+  color: #333;
 }
 
 form {
-  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 label {
-  display: block;
   margin-bottom: 5px;
 }
 
-input[type="text"],
-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
+input {
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #999; /* Changed border color */
   border-radius: 4px;
 }
 
-button[type="submit"] {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  background-color: #007bff;
+button {
+  padding: 10px 15px;
+  background-color: #3498db; /* Changed button background color */
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: background-color 0.3s;
 }
 
-button[type="submit"]:hover {
-  background-color: #0056b3;
+button:hover {
+  background-color: #2980b9; /* Changed button hover background color */
 }
 
-button[type="submit"]:focus {
-  outline: none;
-}
+/* Add more styles as needed */
